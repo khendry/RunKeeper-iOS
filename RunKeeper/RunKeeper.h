@@ -7,9 +7,11 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "NXOAuth2.h"
+#import <NXOAuth2Client/NXOAuth2Client.h>
+#import <NXOAuth2Client/NXOAuth2AccessToken.h>
+#import "RunKeeperFitnessActivity.h"
 
-@class RunKeeperFitnessActivity;
+
 @class RunKeeperProfile;
 
 // Some typedefs to make the ugly code slightly less ugly
@@ -19,23 +21,7 @@ typedef void(^RIFitnessActivityCompletionBlock)(RunKeeperFitnessActivity* activi
 typedef void(^RIBasicFailedBlock)(NSError *err);
 typedef void(^RIPaginatorCompletionBlock)(NSArray* items, NSUInteger page, NSUInteger totalPages);
 
-// All of the activity types supported by the RunKeeper API in a slick little enum
-typedef enum {
-    kRKRunning,
-    kRKCycling,
-    kRKMountainBiking,
-    kRKWalking,
-    kRKHiking,
-    kRKDownhillSkiing,
-    kRKXCountrySkiing,
-    kRKSnowboarding,
-    kRKSkating,
-    kRKSwimming,
-    kRKWheelchair,
-    kRKRowing,
-    kRKElliptical,
-    kRKOther
-} RunKeeperActivityType;
+
 
 // Here is your protocol if you want to dance with the oauth prom queen
 @protocol RunKeeperConnectionDelegate <NSObject>
@@ -50,17 +36,23 @@ typedef enum {
 // Called when authentication is needed to connect to RunKeeper --- normally, the client app will call
 // tryToAuthorize at this point
 - (void)needsAuthentication;
+
+// Call to let the delegate handle processing the NSURL, instead of this class.
+- (void)needsAuthentication:(NSURL *)authorizationURL;
+
 @end
+
+
+
 
 /** Use this to post notifications of new path points to be auto-recorded by the RunKeeper API and stored
  in currentPath --- see the sample app for more details and sample usage. */
 extern NSString *const kRunKeeperNewPointNotification;
 
 @interface RunKeeper : NSObject <NXOAuth2ClientDelegate> {
-    
-@private
-    id <RunKeeperConnectionDelegate> delegate;
 }
+
+@property (nonatomic, assign) id <RunKeeperConnectionDelegate> delegate;
 
 // The timestamp for the starting point --- used to calculate relative times
 @property (nonatomic, strong) NSDate *startPointTimestamp;
@@ -88,7 +80,7 @@ extern NSString *const kRunKeeperNewPointNotification;
 /** Try to connect to the RunKeeper API via auth. The delegate will receive callbacks about the status
  and state of things.  NOTE: this will not actually trigger the authorization flow --- just checks for 
  existing authorization. */
-- (void)tryToConnect:(id <RunKeeperConnectionDelegate>)delegate;
+- (void)tryToConnect:(id <RunKeeperConnectionDelegate>)newDelegate;
 
 /** This actually initiates the authorization process --- it is not triggered authomatically since it
  may not be appropriate for your application. */
@@ -98,15 +90,12 @@ extern NSString *const kRunKeeperNewPointNotification;
  are not actual network calls being made */
 - (void)disconnect;
 
-/** Returns the proper string for API calls from the given acitivity type */
-+ (NSString*)activityString:(RunKeeperActivityType)activity;
-
-/** Returns the activity type for the string retrieved in the "type" field from the API */
-+ (RunKeeperActivityType)activityType:(NSString*)type;
-
 /** Returns the profile of the connected user */
 - (void)getProfileOnSuccess:(void (^)(RunKeeperProfile *profile))success
                      failed:(RIBasicFailedBlock)failed;
+
+/** Returns the activity type for the string retrieved in the "type" field from the API */
++ (RunKeeperActivityType)activityType:(NSString*)type;
 
 /** Post an activity to RunKeeper --- will fail unless you are already connected.  Almost all of
  the parameters are optional -- the only requirements are those of the RunKeeper web API itself which
@@ -135,14 +124,13 @@ extern NSString *const kRunKeeperNewPointNotification;
                                     success:(RIPaginatorCompletionBlock)success
                                      failed:(RIBasicFailedBlock)failed;
 
-/** Retrieves the summary information for a single fitness activity URI and returns the populated activity object in 
+/** Retrieves the summary information for a single fitness activity URI and returns the populated activity object in
 the success block */
 - (void)getFitnessActivitySummary:(NSString*)uri
                           success:(RIFitnessActivityCompletionBlock)success
                            failed:(RIBasicFailedBlock)failed;
 
 @end
-
 
 // Nothing to see here
 extern NSString *const kRunKeeperErrorDomain;

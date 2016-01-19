@@ -7,7 +7,26 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "RunKeeper.h"
+
+
+// All of the activity types supported by the RunKeeper API in a slick little enum
+typedef enum {
+    kRKRunning,
+    kRKCycling,
+    kRKMountainBiking,
+    kRKWalking,
+    kRKHiking,
+    kRKDownhillSkiing,
+    kRKXCountrySkiing,
+    kRKSnowboarding,
+    kRKSkating,
+    kRKSwimming,
+    kRKWheelchair,
+    kRKRowing,
+    kRKElliptical,
+    kRKOther
+} RunKeeperActivityType;
+
 
 /** FitnessActivity as returned by different fitnessActivities API end points 
     Depending on the API call and expected content type, only basic data, advanced or all fields are filled. */
@@ -81,5 +100,9 @@
 
 // The URL of the user’s public, human-readable page for this activity
 @property (nonatomic, strong) NSString* publicURI;
+
+
+/** Returns the proper string for API calls from the given acitivity type */
++ (NSString*)activityString:(RunKeeperActivityType)activity;
 
 @end
